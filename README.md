@@ -8,7 +8,7 @@ Documentación de evidencias del taller de desarrollo con Laravel. Incluye captu
 
 Confirmación de que el servidor de desarrollo Laravel está activo y el proyecto responde correctamente en el puerto 8000.
 
-![Servidor Laravel corriendo](img-000.png)
+![Servidor Laravel corriendo](serverRunnig.png)
 
 ---
 
@@ -37,8 +37,6 @@ Route::get('reservas/{id}',  [BookingController::class, 'show']);
 Route::get('reportes',       [ReportController::class,  'monthlyReport']);
 ```
 
-![routes/web.php](img-001.png)
-
 ---
 
 ## 📦 Entregable B — Los 3 controladores operativos
@@ -66,10 +64,6 @@ class CourtController extends Controller
 }
 ```
 
-![CourtController](img-002.png)
-
----
-
 ### 📊 ReportController
 
 Genera reportes mensuales con datos de reservas, ganancias y promedios por mes.
@@ -93,7 +87,7 @@ class ReportController extends Controller
 }
 ```
 
-![ReportController](img-003.png)
+![ReportController](report.png)
 
 ---
 
@@ -118,15 +112,12 @@ class BookingController extends Controller
 }
 ```
 
-![BookingController](img-004.png)
-
----
-
 ## 📦 Entregable C — Layout con menú funcional
 
 El layout principal (`app.blade.php`) incluye una barra de navegación y sidebar con enlaces generados con `url()`, permitiendo navegar entre secciones **sin escribir URLs manualmente**.
 
-```<!DOCTYPE html>
+```php
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -155,7 +146,7 @@ El layout principal (`app.blade.php`) incluye una barra de navegación y sidebar
 </html>
 ```
 
-![Layout con menú funcional](img-005.png)
+![Layout con menú funcional](layout.png)
 
 ---
 
@@ -165,29 +156,47 @@ El layout principal (`app.blade.php`) incluye una barra de navegación y sidebar
 
 Itera sobre el array de canchas y muestra nombre, tipo, precio y un botón "Ver".
 
-```blade
-<tbody>
-    @foreach($canchas as $i => $cancha)
+```php
+@extends('layouts.app')
+
+@section('title', 'Canchas')
+
+@section('content')
+<h1>Lista de Canchas</h1>
+
+<a href="{{ route('canchas.create') }}">Nueva Cancha</a>
+
+@if(empty($canchas))
+<p>No hay canchas registradas.</p>
+@else
+<table border="1" cellpadding="5" cellspacing="0">
+    <thead>
         <tr>
-            <td style="color:var(--text-muted);">{{ $i + 1 }}</td>
-            <td style="font-weight:600;">{{ $cancha['nombre'] }}</td>
+            <th>#</th>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Precio / hora</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($canchas as $i => $cancha)
+        <tr>
+            <td>{{ $i + 1 }}</td>
+            <td>{{ $cancha['nombre'] }}</td>
+            <td>{{ $cancha['tipo'] }}</td>
+            <td>${{ number_format($cancha['precioHora'], 0, ',', '.') }}</td>
             <td>
-                <span class="badge badge-primary">{{ $cancha['tipo'] }}</span>
-            </td>
-            <td style="color:var(--accent); font-weight:600;">
-                ${{ number_format($cancha['precioHora'], 0, ',', '.') }}
-            </td>
-            <td>
-                <a href="{{ url('/canchas/' . $i) }}" class="btn btn-outline">● Ver</a>
+                <a href="{{ route('canchas.show', $i) }}">Ver</a>
             </td>
         </tr>
-    @endforeach
-</tbody>
+        @endforeach
+    </tbody>
+</table>
 @endif
 @endsection
 ```
 
-![foreach en courts/index](img-006.png)
 
 ---
 
@@ -195,69 +204,51 @@ Itera sobre el array de canchas y muestra nombre, tipo, precio y un botón "Ver"
 
 Itera sobre reservas y usa `@if` para asignar dinámicamente la clase CSS del badge de estado (`confirmada`, `cancelada`, `pendiente`).
 
-```blade
-<tbody>
-    @foreach($reservas as $i => $reserva)
+```php
+@extends('layouts.app')
+
+@section('title', 'Reservas')
+
+@section('content')
+<h1>Reservas</h1>
+
+<a href="{{ route('reservas.create') }}">Nueva Reserva</a>
+
+@php $reservas = $reservas ?? []; @endphp
+
+@if(empty($reservas))
+<p>No hay reservas registradas.</p>
+@else
+<table border="1" cellpadding="5" cellspacing="0">
+    <thead>
         <tr>
-            <td style="color:var(--text-muted);">{{ $i + 1 }}</td>
-            <td style="font-weight:600;">{{ $reserva['cliente'] }}</td>
+            <th>
+            <th>Cliente</th>
+            <th>Cancha</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Total</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($reservas as $i => $reserva)
+        <tr>
+            <td>{{ $i + 1 }}</td>
+            <td>{{ $reserva['cliente'] }}</td>
             <td>{{ $reserva['cancha'] }}</td>
             <td>{{ $reserva['fecha'] }}</td>
             <td>{{ $reserva['hora'] }}</td>
-            <td style="color:var(--accent); font-weight:600;">
-                ${{ number_format($reserva['total'] ?? 0, 0, ',', '.') }}
-            </td>
+            <td>${{ number_format($reserva['total'] ?? 0, 0, ',', '.') }}</td>
+            <td>{{ ucfirst($reserva['estado'] ?? 'pendiente') }}</td>
             <td>
-                @php
-                    $estado = $reserva['estado'] ?? 'pendiente';
-                    $badgeClass = match($estado) {
-                        'confirmada' => 'badge-success',
-                        'cancelada'  => 'badge-danger',
-                        default      => 'badge-warning',
-                    };
-                @endphp
-                <span class="badge {{ $badgeClass }}">{{ ucfirst($estado) }}</span>
-            </td>
-            <td>
-                <a href="{{ url('/reservas/' . $i) }}" class="btn btn-outline">● Ver</a>
+                <a href="{{ route('reservas.show', $i) }}">Ver</a>
             </td>
         </tr>
-    @endforeach
-</tbody>
-```
-
-![foreach e if en bookings/index](img-007.png)
-
+        @endforeach
+    </tbody>
+</table>
+@endif
+@endsection
 ---
-
-## 📁 Estructura del Proyecto
-
-```
-taller/
-├── app/
-│   └── Http/
-│       └── Controllers/
-│           ├── CourtController.php
-│           ├── BookingController.php
-│           └── ReportController.php
-├── resources/
-│   └── views/
-│       ├── layouts/
-│       │   └── app.blade.php
-│       ├── courts/
-│       │   ├── index.blade.php
-│       │   ├── create.blade.php
-│       │   └── show.blade.php
-│       ├── bookings/
-│       │   ├── index.blade.php
-│       │   ├── create.blade.php
-│       │   └── show.blade.php
-│       └── reports/
-│           └── show.blade.php
-└── routes/
-    └── web.php
-```
-
----
-
-> 📅 Taller realizado el **8 de marzo de 2026** · Framework: **Laravel** · Editor: **VS Code + Antigravity**
